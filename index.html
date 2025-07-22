@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جالب ترجمات Subdl</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        .card {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+        }
+        .input-field {
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            color: #e5e7eb;
+        }
+        .btn {
+            background-color: #4f46e5;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #4338ca;
+        }
+        .btn-secondary {
+            background-color: #4b5563;
+        }
+        .btn-secondary:hover {
+            background-color: #6b7280;
+        }
+        .loader {
+            border: 4px solid #4b5563;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .subtitle-item {
+            border-bottom: 1px solid #374151;
+        }
+        .subtitle-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto">
+        <div class="card rounded-lg p-6 shadow-lg">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-white">جالب ترجمات Subdl</h1>
+                <p class="text-gray-400 mt-2">اعثر على ترجمات الأفلام والمسلسلات بسهولة</p>
+            </div>
+
+            <!-- Step 1: Search -->
+            <div class="mb-6">
+                <label for="search-input" class="block mb-2 font-semibold text-lg">الخطوة 1: ابحث عن فيلمك أو مسلسلك</label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="search-input" placeholder="اكتب اسم الفيلم هنا..." class="input-field w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="search-button" class="btn text-white font-bold py-2 px-6 rounded-md w-full sm:w-auto">ابحث</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Open Link & Paste -->
+            <div id="step-2-container" class="mb-6 hidden">
+                 <label for="url-input" class="block mb-2 font-semibold text-lg">الخطوة 2: افتح الرابط وتجاوز الكابتشا</label>
+                 <p class="text-sm text-gray-400 mb-2">
+                    1. اضغط على "نسخ وفتح" لفتح الرابط في صفحة جديدة.
+                    <br>
+                    2. قم بحل اختبار الكابتشا الذي سيظهر لك في الموقع.
+                    <br>
+                    3. بعد أن تظهر لك صفحة النتائج، انسخ رابطها من شريط العنوان والصقه في الحقل بالأسفل.
+                 </p>
+                <div class="flex items-center bg-gray-800 p-2 rounded-md mb-3">
+                    <input type="text" id="generated-url" readonly class="bg-transparent w-full text-gray-300 focus:outline-none">
+                    <button id="copy-url-button" class="btn-secondary text-white font-bold py-1 px-3 rounded-md mr-2">نسخ وفتح</button>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="url-input" placeholder="الصق الرابط هنا بعد تجاوز الكابتشا..." class="input-field w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="fetch-button" class="btn text-white font-bold py-2 px-6 rounded-md w-full sm:w-auto">جلب الترجمات</button>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="results-container" class="mt-6">
+                <div id="loader" class="hidden flex justify-center items-center py-4">
+                    <div class="loader"></div>
+                </div>
+                <div id="error-message" class="hidden text-center text-red-400 bg-red-900/50 p-3 rounded-md"></div>
+                <div id="subtitles-list"></div>
+            </div>
+        </div>
+        <footer class="text-center mt-4 text-xs text-gray-500">
+            تنويه: هذا التطبيق يستخدم بروكسي عام لجلب البيانات وقد لا يعمل دائماً. لا يمكن للتطبيق تجاوز الكابتشا بشكل آلي.
+        </footer>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const step2Container = document.getElementById('step-2-container');
+        const generatedUrlInput = document.getElementById('generated-url');
+        const copyUrlButton = document.getElementById('copy-url-button');
+        const urlInput = document.getElementById('url-input');
+        const fetchButton = document.getElementById('fetch-button');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const subtitlesList = document.getElementById('subtitles-list');
+
+        // Event listener for the initial search button
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (!query) {
+                showError('الرجاء إدخال اسم فيلم أو مسلسل للبحث.');
+                return;
+            }
+            const searchUrl = `https://subdl.com/subtitle/search/?q=${encodeURIComponent(query)}`;
+            generatedUrlInput.value = searchUrl;
+            step2Container.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            subtitlesList.innerHTML = '';
+        });
+        
+        // Event listener for copying the URL and opening a new tab
+        copyUrlButton.addEventListener('click', () => {
+            const url = generatedUrlInput.value;
+            navigator.clipboard.writeText(url).then(() => {
+                window.open(url, '_blank');
+            }).catch(err => {
+                showError('فشل نسخ الرابط. الرجاء نسخه يدوياً.');
+                window.open(url, '_blank');
+            });
+        });
+
+        // Event listener for the final fetch button
+        fetchButton.addEventListener('click', async () => {
+            const targetUrl = urlInput.value.trim();
+            if (!targetUrl.startsWith('https://subdl.com/')) {
+                showError('الرجاء إدخال رابط صحيح من موقع subdl.com.');
+                return;
+            }
+
+            loader.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            subtitlesList.innerHTML = '';
+
+            // Using a public CORS proxy to bypass browser restrictions.
+            // This is essential for client-side scraping.
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) {
+                    throw new Error(`فشل الاتصال بالبروكسي. الحالة: ${response.status}`);
+                }
+                const data = await response.json();
+                const htmlContent = data.contents;
+                
+                if (!htmlContent) {
+                     throw new Error('لم يتمكن البروكسي من جلب محتوى الصفحة. قد يكون الرابط خاطئاً أو الموقع محجوباً.');
+                }
+
+                parseAndDisplaySubtitles(htmlContent);
+
+            } catch (error) {
+                console.error('Error fetching subtitles:', error);
+                showError(error.message || 'حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        });
+
+        function parseAndDisplaySubtitles(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // The structure on subdl.com for subtitles
+            const subtitleElements = doc.querySelectorAll('.subtitles .subtitle');
+
+            if (subtitleElements.length === 0) {
+                showError('لم يتم العثور على ترجمات في هذه الصفحة. تأكد من أنك في صفحة نتائج البحث الصحيحة.');
+                return;
+            }
+
+            let listHtml = '<h3 class="text-xl font-bold mb-3 text-white">الترجمات المتاحة:</h3>';
+            subtitleElements.forEach(el => {
+                const titleElement = el.querySelector('.info h3 a');
+                const langElement = el.querySelector('.info p .language');
+                
+                if (titleElement && langElement) {
+                    const title = titleElement.textContent.trim();
+                    const lang = langElement.textContent.trim();
+                    const link = `https://subdl.com${titleElement.getAttribute('href')}`;
+                    
+                    listHtml += `
+                        <div class="subtitle-item flex items-center justify-between p-3">
+                            <div>
+                                <h4 class="font-semibold text-white">${title}</h4>
+                                <span class="text-sm text-gray-400">${lang}</span>
+                            </div>
+                            <a href="${link}" target="_blank" rel="noopener noreferrer" class="btn-secondary text-white font-bold py-1 px-4 rounded-md text-sm">
+                                اذهب للصفحة
+                            </a>
+                        </div>
+                    `;
+                }
+            });
+            subtitlesList.innerHTML = listHtml;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
